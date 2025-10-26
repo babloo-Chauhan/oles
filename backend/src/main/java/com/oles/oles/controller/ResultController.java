@@ -40,4 +40,17 @@ public class ResultController {
         User user = users.findByUsername(username).orElseThrow();
         return results.findByCandidate(user);
     }
+
+    // Admin: view all results
+    @GetMapping("/admin/results")
+    public List<Result> allResults() {
+        return results.findAll();
+    }
+
+    // Admin: view results for a specific user id
+    @GetMapping("/admin/results/user/{userId}")
+    public List<Result> resultsByUserId(@PathVariable Long userId) {
+        User user = users.findById(userId).orElseThrow();
+        return results.findByCandidate(user);
+    }
 }

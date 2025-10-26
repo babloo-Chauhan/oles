@@ -15,6 +15,8 @@
     <groupId>com.oles</groupId>
     <artifactId>oles-backend</artifactId>
     <version>1.0.0</version>
+    <name>oles-backend</name>
+    <description>Spring Boot backend for OLES project using MySQL</description>
 
     <dependencies>
         <!-- Spring Boot Starters -->
@@ -28,21 +30,25 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
+        <!-- MySQL Driver -->
+       <!-- MySQL Driver -->
+<dependency>
+    <groupId>com.mysql</groupId>
+    <artifactId>mysql-connector-j</artifactId>
+    <version>8.3.0</version>
+</dependency>
+
+
+        <!-- Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-
-        <!-- MySQL -->
-        <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <scope>runtime</scope>
         </dependency>
 
         <!-- JWT -->
@@ -64,7 +70,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- JUnit + Spring Boot Test -->
+        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

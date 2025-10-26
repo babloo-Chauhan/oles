@@ -1,13 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import api from "../api";
 import { Link } from "react-router-dom";
+import ExamCard from "../components/ExamCard";
+import Card from "../components/Card";
+import Button from "../components/Button";
+import LoadingSpinner, { LoadingCard } from "../components/LoadingSpinner";
 
 export default function Dashboard() {
     const [exams, setExams] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        totalExams: 0,
+        activeExams: 0,
+        completedExams: 0
+    });
     const role = localStorage.getItem("role");
 
-    const fetchExams = async () => {
+    const fetchExams = useCallback(async () => {
         try {
+            setLoading(true);
             if (role === "ADMIN") {
                 const res = await api.get("/admin/exams");
                 setExams(res.data);
@@ -17,54 +28,167 @@ export default function Dashboard() {
             }
         } catch (err) {
             console.error("Error fetching exams", err);
+        } finally {
+            setLoading(false);
         }
-    };
+    }, [role]);
 
     useEffect(() => {
         fetchExams();
-    }, []);
+    }, [fetchExams]);
+
+    useEffect(() => {
+        if (exams.length > 0) {
+            const now = new Date();
+            const activeExams = exams.filter(exam => {
+                const startTime = new Date(exam.startTime);
+                const endTime = new Date(exam.endTime);
+                return now >= startTime && now <= endTime;
+            }).length;
+
+            const completedExams = exams.filter(exam => {
+                const endTime = new Date(exam.endTime);
+                return now > endTime;
+            }).length;
+
+            setStats({
+                totalExams: exams.length,
+                activeExams,
+                completedExams
+            });
+        }
+    }, [exams]);
+
+    if (loading) {
+        return <LoadingCard message="Loading your dashboard..." />;
+    }
 
     return (
-        <div className="max-w-5xl mx-auto p-6">
-            <h2 className="text-2xl font-bold mb-6">📚 Available Exams</h2>
-
-            {/* Exam List */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {exams.map((e) => (
-                    <div
-                        key={e.id}
-                        className="p-4 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition bg-white"
-                    >
-                        <h3 className="text-lg font-semibold">{e.title}</h3>
-                        <p className="text-sm text-gray-600">📘 {e.subject}</p>
-                        <p className="text-sm mt-1">⏳ {e.durationMinutes} minutes</p>
-                        {e.startTime && (
-                            <p className="text-xs text-gray-500 mt-1">
-                                🕒 {new Date(e.startTime).toLocaleString()} →{" "}
-                                {new Date(e.endTime).toLocaleString()}
-                            </p>
-                        )}
-                        <Link
-                            to={`/exam/${e.id}`}
-                            className="inline-block mt-3 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
-                        >
-                            Start Exam
-                        </Link>
+        <div className="space-y-8">
+            {/* Tailwind quick-test banner (set localStorage.debugTailwind = '1' to show) */}
+            {typeof window !== 'undefined' && localStorage.getItem('debugTailwind') === '1' && (
+                <div className="p-3 bg-red-500 text-white rounded">Tailwind is working ✅</div>
+            )}
+            {/* Welcome Section */}
+            <div className="fade-in">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">
+                            Welcome back, {localStorage.getItem('username')}! 👋
+                        </h1>
+                        <p className="text-gray-600 mt-2">
+                            {role === 'ADMIN'
+                                ? 'Manage your examination portal and monitor student progress.'
+                                : 'Ready to take your next exam? Choose from the available tests below.'
+                            }
+                        </p>
                     </div>
-                ))}
+                    {role === "ADMIN" && (
+                        <Link to="/admin">
+                            <Button variant="primary" size="lg">
+                                ⚙️ Admin Panel
+                            </Button>
+                        </Link>
+                    )}
+                </div>
             </div>
 
-            <div className="mt-8">
-                <Link
-                    to="/results"
-                    className="text-blue-700 underline hover:text-blue-900"
-                >
-                    📊 My Results
-                </Link>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 fade-in">
+                <Card className="text-center">
+                    <div className="flex items-center justify-center w-12 h-12 bg-primary-100 rounded-lg mx-auto mb-4">
+                        <span className="text-2xl">📚</span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900">{stats.totalExams}</h3>
+                    <p className="text-gray-600">Total Exams</p>
+                </Card>
+
+                <Card className="text-center">
+                    <div className="flex items-center justify-center w-12 h-12 bg-success-100 rounded-lg mx-auto mb-4">
+                        <span className="text-2xl">✅</span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900">{stats.activeExams}</h3>
+                    <p className="text-gray-600">Active Now</p>
+                </Card>
+
+                <Card className="text-center">
+                    <div className="flex items-center justify-center w-12 h-12 bg-warning-100 rounded-lg mx-auto mb-4">
+                        <span className="text-2xl">🏁</span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900">{stats.completedExams}</h3>
+                    <p className="text-gray-600">Completed</p>
+                </Card>
             </div>
 
-            {/* Only show Admin Controls if role is ADMIN */}
-            {role === "ADMIN" && <AdminBox onExamAdded={fetchExams} />}
+            {/* Exams Section */}
+            <div className="fade-in">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">Available Exams</h2>
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                        <span className="w-2 h-2 bg-success-500 rounded-full"></span>
+                        <span>{exams.length} exams available</span>
+                    </div>
+                </div>
+
+                {exams.length === 0 ? (
+                    <Card className="text-center py-12">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-2xl">📝</span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">No exams available</h3>
+                        {role === "ADMIN" ? (
+                            <div className="space-y-4">
+                                <p className="text-gray-600">Create your first exam to get started.</p>
+                                <Link to="/admin">
+                                    <Button variant="primary">
+                                        ⚙️ Go to Admin Panel
+                                    </Button>
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <p className="text-gray-600">Contact your administrator to add exams.</p>
+                                <p className="text-sm text-gray-500">
+                                    Default login: username: "student", password: "Admin@123"
+                                </p>
+                            </div>
+                        )}
+                    </Card>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {exams.map((exam) => (
+                            <ExamCard key={exam.id} exam={exam} />
+                        ))}
+                    </div>
+                )}
+                
+            </div>
+
+            {/* Quick Actions */}
+            <div className="fade-in">
+                <Card className="bg-gradient-to-r from-primary-50 to-indigo-50 border-primary-200">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+                            <p className="text-gray-600">Access your results and manage your account</p>
+                        </div>
+                        <div className="flex space-x-3">
+                            <Link to="/results">
+                                <Button variant="secondary">
+                                    📊 View Results
+                                </Button>
+                            </Link>
+                            {role === "ADMIN" && (
+                                <Link to="/admin">
+                                    <Button variant="primary">
+                                        ⚙️ Admin Panel
+                                    </Button>
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+                </Card>
+            </div>
         </div>
     );
 }
